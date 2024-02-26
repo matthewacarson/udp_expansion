@@ -1,12 +1,19 @@
+
+# Load libraries ----------------------------------------------------------
 library(sf)
-library(dplyr)
+library(tidyverse)
 library(reticulate)
 
-# Load udp typologies from python pickle ####
+# Load data ---------------------------------------------------------------
+
+## UDP typologies from python pickle ----------------------------------
+
 udp_typologies <-
   py_load_object(paste0(getwd(), '/data/pickle_files/final_typology_output.pkl'))
 
-# Save udp typologies to RData file
+
+## Save udp typologies to RData file ---------------------------------------
+
 # save(
 #   udp_typologies,
 #   file = paste0(
@@ -15,33 +22,104 @@ udp_typologies <-
 #   )
 # )
 
-# Fatal encounters with 2019 GEOID (already joined) ####
+## Fatal encounters with 2019 GEOID (joined) -------------------------------
+
 load(file = paste0(getwd(), '/data/R_data/fatal_enc_2019.RData'))
 
-## Rename -- orig. name isn't clear ####
+### Rename -- fatal encounters ----------------------------------------------
+
 fatal_enc_2019 <- joined_2019
 rm(joined_2019) # remove -- not needed
 
-# Load all census tracts -- 2019 data ####
+## All census tracts -- 2019 data -------------------------------------
+
 load(file = paste0(getwd(), '/data/R_data/all_tracts_2019.RData'))
 
-## Rename ####
+### Rename all --------------------------------------------------------------
+
 all_tracts_2019 <- income_population_quintiles_2019
 rm(income_population_quintiles_2019)
 
-# Add UDP to 2019 census data ####
+
+
+# Add UDP to 2019 census data ---------------------------------------------
+
+
+keep_udp_cols <- c(
+  'GEOID', 'pop_18', 'white_18', "pop_00", 
+  "white_00", "hu_00", "ohu_00", "rhu_00", "total_25_00", 
+  "male_25_col_bd_00", "male_25_col_md_00", "male_25_col_psd_00", 
+  "male_25_col_phd_00", "female_25_col_bd_00", "female_25_col_md_00", 
+  "female_25_col_psd_00", "female_25_col_phd_00", "mhval_00", "mrent_00", 
+  "hh_00", "hinc_00", "trtid00", "pop_90", "hh_90", "white_90", 
+  "total_25_col_9th_90", "total_25_col_12th_90", 
+  "total_25_col_hs_90", "total_25_col_sc_90", "total_25_col_ad_90", 
+  "total_25_col_bd_90", "total_25_col_gd_90", "hinc_90", "ohu_90", 
+  "rhu_90", "mrent_90", "mhval_90", "trtid90", "inc80_18", "inc120_18", 
+  "inc80_00", "inc120_00", "inc80_90", "low_80120_18", "mod_80120_18", 
+  "high_80120_18", "low_pdmt_medhhinc_18", "high_pdmt_medhhinc_18", 
+  "mod_pdmt_medhhinc_18", "mix_low_medhhinc_18", "mix_mod_medhhinc_18", 
+  "mix_high_medhhinc_18", "inc_cat_medhhinc_18", "inc_cat_medhhinc_encoded18", 
+  "low_80120_00", "mod_80120_00", "high_80120_00", "low_pdmt_medhhinc_00", 
+  "high_pdmt_medhhinc_00", "mod_pdmt_medhhinc_00", "mix_low_medhhinc_00", 
+  "mix_mod_medhhinc_00", "mix_high_medhhinc_00", "inc_cat_medhhinc_00", 
+  "inc_cat_medhhinc_encoded00", "per_all_li_90", "per_all_li_00", 
+  "per_all_li_18", "all_li_count_90", "all_li_count_00", "all_li_count_18", 
+  "real_mhval_90", "real_mrent_90", "real_hinc_90", "real_mhval_00", 
+  "real_mrent_00", "real_hinc_00", "real_mhval_12", "real_mrent_12", 
+  "real_mhval_18", "real_mrent_18", "real_hinc_18", "per_nonwhite_90", 
+  "per_nonwhite_00", "per_nonwhite_18", "hu_90", "per_rent_90", 
+  "per_rent_00", "hu_18", "per_rent_18", "total_25_90", "per_col_90", 
+  "male_25_col_00", "female_25_col_00", "total_25_col_00", "per_col_00", 
+  "per_col_18", "per_units_pre50_18", "per_limove_18", "mov_tot_w_income_18", 
+  "per_limove_12", "mov_tot_w_income_12", "lmh_flag_encoded", "lmh_flag_category", 
+  "pctch_real_mhval_00_18", "pctch_real_mrent_12_18", "rent_decrease", 
+  "rent_marginal", "rent_increase", "rent_rapid_increase", "house_decrease", 
+  "house_marginal", "house_increase", "house_rapid_increase", "tot_decrease", 
+  "tot_marginal", "tot_increase", "tot_rapid_increase", "change_flag_encoded", 
+  "change_flag_category", "per_ch_zillow_12_18", "ab_50pct_ch", 
+  "ab_90percentile_ch", "rent_50pct_ch", "rent_90percentile_ch", 
+  "hv_abrm_ch", "rent_abrm_ch", "pctch_real_mhval_90_00", "pctch_real_mrent_90_00", 
+  "pctch_real_hinc_90_00", "pctch_real_mrent_00_18", "pctch_real_hinc_00_18", 
+  "ch_all_li_count_90_00", "ch_all_li_count_00_18", "ch_per_col_90_00", 
+  "ch_per_col_00_18", "ch_per_limove_12_18", "pop00flag", "aboverm_per_all_li_90", 
+  "aboverm_per_all_li_00", "aboverm_per_all_li_18", "aboverm_per_nonwhite_18", 
+  "aboverm_per_nonwhite_90", "aboverm_per_nonwhite_00", "aboverm_per_rent_90", 
+  "aboverm_per_rent_00", "aboverm_per_rent_18", "aboverm_per_col_90", 
+  "aboverm_per_col_00", "aboverm_per_col_18", "aboverm_real_mrent_90", 
+  "aboverm_real_mrent_00", "aboverm_real_mrent_12", "aboverm_real_mrent_18", 
+  "aboverm_real_mhval_90", "aboverm_real_mhval_00", "aboverm_real_mhval_18", 
+  "aboverm_pctch_real_mhval_00_18", "aboverm_pctch_real_mrent_00_18", 
+  "aboverm_pctch_real_mrent_12_18", "aboverm_pctch_real_mhval_90_00", 
+  "aboverm_pctch_real_mrent_90_00", "lostli_00", "lostli_18", 
+  "aboverm_pctch_real_hinc_90_00", "aboverm_pctch_real_hinc_00_18", 
+  "aboverm_ch_per_col_90_00", "aboverm_ch_per_col_00_18", 
+  "aboverm_per_units_pre50_18", "presence_ph_LIHTC", 
+  "vul_gent_90", "vul_gent_00", "vul_gent_18", "hotmarket_00", 
+  "hotmarket_18", "gent_90_00", "gent_90_00_urban", "gent_00_18", 
+  "gent_00_18_urban", "dp_PChRent", "dp_RentGap", "tr_rent_gap", 
+  "rm_rent_gap", "dense", "SAE", "AdvG", "ARE", "BE", "SMMI", "ARG", 
+  "EOG", "OD", "OD_loss", "LISD", "double_counted", 
+  "typology", "typology_text")
+
+
 all_tracts_2019 <- all_tracts_2019 |> 
   left_join(
     x = all_tracts_2019,
-    y = udp_typologies[c('GEOID', 'typology', 'typology_text')],
+    y = udp_typologies[keep_udp_cols],
     by = join_by(GEOID)
   )
 
-# Remove geometries since I can join with GEOIDs/FIPS ####
+
+
+# Remove geometries since I can join with GEOIDs/FIPS ---------------------
+
 fatal_enc_2019 <- st_drop_geometry(fatal_enc_2019)
 udp_typologies <- st_drop_geometry(udp_typologies)
 
-# Bring UDP typologies into fatal encounters df ####
+
+# Bring UDP typologies into fatal encounters df ---------------------------
+
 fatal_enc_2019_udp <- fatal_enc_2019 |>
   left_join(x = fatal_enc_2019,
             y = udp_typologies[, c(
@@ -64,8 +142,70 @@ fatal_enc_2019_udp <- fatal_enc_2019 |>
             by = join_by(GEOID))
 
 
+# Population by UDP typology ----------------------------------------------
+
+udp_population <- aggregate(pop_18 ~ typology_text, data = udp_typologies, FUN = sum)
+
+
+# LUOF by UDP typology ----------------------------------------------------
+
+luof_by_udp <-  table(fatal_enc_2019_udp$typology_text) |> as.data.frame() |> 
+  rename(typology_text = Var1, luof_count = Freq)
+
+
+# Combine 'udp_population' and 'LUOF_by_UDP' ------------------------------
+
+udp_luof_summary <- 
+  full_join(
+    luof_by_udp,
+    udp_population,
+    by = join_by(typology_text)
+  ) |> 
+  mutate(
+    Rt_annual_10m = luof_count / pop_18 / 6 * 10000000
+  )
+
+rm(udp_population, luof_by_udp)
+
+# Population by UDP and majority race -------------------------------------------
+
+udp_population_majority <- all_tracts_2019 |>  
+  aggregate(NH_WhiteE ~ typology_text, FUN = sum, data = _) |> 
+  mutate(all_tracts_2019 |> aggregate(Hisp_LatinoE ~ typology_text, FUN = sum, data = _)) |> 
+  mutate(all_tracts_2019 |> aggregate(NH_BlackE ~ typology_text, FUN = sum, data = _)) |> 
+  rename(White = NH_WhiteE, 'Hispanic/Latino' = Hisp_LatinoE, Black = NH_BlackE) |> 
+  pivot_longer(names_to = "race", cols = c("White", "Hispanic/Latino", "Black"), values_to = "population")
+  
+
+# LUOF count by majority and race -----------------------------------------
+
+
+luof_by_udp_majority <- 
+  table(all_tracts_2019$typology_text, all_tracts_2019$Majority) |> 
+  as.data.frame() |> rename(typology_text = Var1, race = Var2, luof_count = Freq)
+
+
+# Join population and LUOF count ------------------------------------------
+
+udp_majority_luof_summary <- 
+  full_join(
+    luof_by_udp_majority,
+    udp_population_majority,
+    by = join_by(typology_text, race)) |> 
+  
 
 
 
-udp_populations <- aggregate(pop_18 ~ typology_text, data = udp_typologies, FUN = sum)
+
+
+
+
+
+
+
+
+
+
+
+
 
