@@ -12,38 +12,45 @@ udp_typologies <-
   py_load_object(paste0(getwd(), '/data/pickle_files/final_typology_output.pkl'))
 
 
-## Save udp typologies to RData file ---------------------------------------
+### Save udp typologies to RData ---------------------------------------
 
 # save(
 #   udp_typologies,
-#   file = paste0(
-#     getwd(),
-#     '/data/outputs/typologies/final_typology_output.RData'
-#   )
+  # file = paste0(
+  #   getwd(),
+  #   '/data/outputs/typologies/final_typology_output.RData'
+  # )
 # )
 
-## Fatal encounters with 2019 GEOID (joined) -------------------------------
+## Load udp typologies from RData ---------------------------------------
+
+# load(paste0(getwd(), '/data/outputs/typologies/final_typology_output.RData'))
+
+### Fatal encounters with 2019 GEOID (joined) -------------------------------
 
 load(file = paste0(getwd(), '/data/R_data/fatal_enc_2019.RData'))
 
-### Rename -- fatal encounters ----------------------------------------------
+#### Rename -- fatal encounters ----------------------------------------------
 
 fatal_enc_2019 <- joined_2019
 rm(joined_2019) # remove -- not needed
 
-## All census tracts -- 2019 data -------------------------------------
+### All census tracts -- 2019 data -------------------------------------
 
 load(file = paste0(getwd(), '/data/R_data/all_tracts_2019.RData'))
 
-### Rename all --------------------------------------------------------------
+#### Rename all_tracts_2019 --------------------------------------------------------------
 
 all_tracts_2019 <- income_population_quintiles_2019
 rm(income_population_quintiles_2019)
 
+## Remove geometries since I can join with GEOIDs/FIPS ---------------------
 
+fatal_enc_2019 <- st_drop_geometry(fatal_enc_2019)
+udp_typologies <- st_drop_geometry(udp_typologies)
 
-# Add UDP to 2019 census data ---------------------------------------------
-
+# Combining -----------------------------------------------
+## Add UDP to 2019 census data ---------------------------------------------
 
 keep_udp_cols <- c(
   'GEOID', 'pop_18', 'white_18', "pop_00", 
@@ -103,71 +110,62 @@ keep_udp_cols <- c(
   "typology", "typology_text")
 
 
-all_tracts_2019 <- all_tracts_2019 |> 
+all_tracts_2019 <- 
   left_join(
     x = all_tracts_2019,
-    y = udp_typologies[keep_udp_cols],
-    by = join_by(GEOID)
+    y = udp_typologies[keep_udp_cols])
+rm(udp_typologies)
+
+
+## Add LUOF counts to all_tracts_2019 --------------------------------------
+### Creating LUOF by GEOID frequency table -------------------------------
+
+GEOID_count <- table(fatal_enc_2019$GEOID) |> as.data.frame() |> 
+  rename(GEOID = Var1, luof_count = Freq)
+
+### Join frequency table with all_tracts_2019 -------------------------------
+
+all_tracts_2019 <- 
+  full_join(
+    all_tracts_2019,
+    GEOID_count
   )
 
+## Bring UDP typologies into fatal encounters df ---------------------------
 
-
-# Remove geometries since I can join with GEOIDs/FIPS ---------------------
-
-fatal_enc_2019 <- st_drop_geometry(fatal_enc_2019)
-udp_typologies <- st_drop_geometry(udp_typologies)
-
-
-# Bring UDP typologies into fatal encounters df ---------------------------
-
-fatal_enc_2019_udp <- fatal_enc_2019 |>
+fatal_enc_2019_udp <-
   left_join(x = fatal_enc_2019,
-            y = udp_typologies[, c(
-              "NAME",
-              "SAE",
-              "AdvG",
-              "ARE",
-              "BE",
-              "SMMI",
-              "ARG",
-              "EOG",
-              "OD",
-              "OD_loss",
-              "LISD",
-              "GEOID",
-              "double_counted",
-              "typology",
-              "typology_text"
-            )],
-            by = join_by(GEOID))
+            y = all_tracts_2019)
+
+rm(fatal_enc_2019)
+
+# Summarizing -------------------------------------------------------------
+## Population by UDP typology ----------------------------------------------
+
+udp_population <- aggregate(pop_18 ~ typology_text, data = all_tracts_2019, FUN = sum)
 
 
-# Population by UDP typology ----------------------------------------------
-
-udp_population <- aggregate(pop_18 ~ typology_text, data = udp_typologies, FUN = sum)
-
-
-# LUOF by UDP typology ----------------------------------------------------
+## LUOF by UDP typology ----------------------------------------------------
 
 luof_by_udp <-  table(fatal_enc_2019_udp$typology_text) |> as.data.frame() |> 
   rename(typology_text = Var1, luof_count = Freq)
 
 
-# Combine 'udp_population' and 'LUOF_by_UDP' ------------------------------
+## Combine 'udp_population' and 'LUOF_by_UDP' ------------------------------
 
-udp_luof_summary <- 
+summary_udp_luof <- 
   full_join(
     luof_by_udp,
     udp_population,
     by = join_by(typology_text)
   ) |> 
   mutate(
-    Rt_annual_10m = luof_count / pop_18 / 6 * 10000000
+    rt_annual_10m = luof_count / pop_18 / 6 * 10000000
   )
 
 rm(udp_population, luof_by_udp)
 
-# Population by UDP and majority race -------------------------------------------
+## Population by UDP and majority race -------------------------------------------
 
 udp_population_majority <- all_tracts_2019 |>  
   aggregate(NH_WhiteE ~ typology_text, FUN = sum, data = _) |> 
@@ -177,35 +175,30 @@ udp_population_majority <- all_tracts_2019 |>
   pivot_longer(names_to = "race", cols = c("White", "Hispanic/Latino", "Black"), values_to = "population")
   
 
-# LUOF count by majority and race -----------------------------------------
+## LUOF count by majority and race -----------------------------------------
 
 
 luof_by_udp_majority <- 
-  table(all_tracts_2019$typology_text, all_tracts_2019$Majority) |> 
+  table(fatal_enc_2019_udp$typology_text, fatal_enc_2019_udp$Majority) |> 
   as.data.frame() |> rename(typology_text = Var1, race = Var2, luof_count = Freq)
 
 
-# Join population and LUOF count ------------------------------------------
+## Join population and LUOF count ------------------------------------------
 
-udp_majority_luof_summary <- 
+summary_udp_majority_luof <- 
   full_join(
     luof_by_udp_majority,
     udp_population_majority,
     by = join_by(typology_text, race)) |> 
-  
+  mutate(
+    rt_annual_10m = luof_count / population / 6 * 10000000 
+  )
+
+rm(luof_by_udp_majority, udp_population_majority)
 
 
 
-
-
-
-
-
-
-
-
-
-
+# Make Plots --------------------------------------------------------------
 
 
 
