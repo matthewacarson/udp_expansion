@@ -42,8 +42,6 @@ pickle_files = home + '\\data\\pickle_files'
 
 # city_name = str(sys.argv[1])
 
-# %%
-
 # When testing city analysis, use: 
 # city_name = "San Francisco"
 # Run create_lag_vars.r to create lag variables
@@ -754,12 +752,12 @@ df['typology'] = np.where(df['SAE'] == 1, 'SAE', df['typology'])    # Stable/adv
 df['typology'] = np.where(df['double_counted']>1, 'Unknown', df['typology'])
 
 # %%
-# Save variables to a pickle file
+# Save to a pickle file
 with open(pickle_files + '\\4_typology_df_before_loop.pkl', 'wb') as f:
     pickle.dump(df, f)
 
 # %%
-
+# Open pickle
 with open(pickle_files + '\\4_typology_df_before_loop.pkl', 'rb') as f:
     df = pickle.load(f)
 # Double Classification Check
@@ -814,12 +812,19 @@ df.loc[indices_to_pad, 'GEOID'] = '0' + df.loc[indices_to_pad, 'GEOID']
 # Confirm that it was successful
 df['GEOID'].str.len().value_counts()
 # %%
+df.drop(columns=['typ_cat'], inplace=True)
+
 df = df.drop(columns = 'geometry')
 # %%
 df.to_csv(output_path+'/typologies/final_typology_output.csv')
+# %%
+# Save to a pickle file
+with open(pickle_files + '\\final_typology_output.pkl', 'wb') as f:
+    pickle.dump(df, f)
+
 
 # %%
-with open(pickle_files + '\\final_typology_output.pkl', 'rb') as f:
+with open(pickle_files + '\\final_typology_output.pkl', 'rb') as f: 
     df = pickle.load(f)
 # %%
 
