@@ -22,15 +22,14 @@ import matplotlib.pyplot as plt
 import os
 import pickle
 # from pandasgui import show
-
+# %%
 # ==========================================================================
 # folder paths
 # ==========================================================================
-home = 'C:\\Users\\madou\\OneDrive - UCLA IT Services\\1)_PS-Honors\\data_science_center'
+home = 'C:\\Users\\madou\\OneDrive - UCLA IT Services\\1)_PS-Honors\\udp_expansion'
 os.chdir(home)
 os.getcwd()
-pickle_files = 'C:\\Users\\madou\\OneDrive - UCLA IT Services\\1)_PS-Honors\\data_science_center\\data\\pickle_files'
-pickle_files
+pickle_files = home + '\\data\\pickle_files'
 # ==========================================================================
 # Choose City to Run (inputs needed)
 # ==========================================================================
@@ -734,74 +733,52 @@ df['LISD'] = np.where((df['pop00flag'] == 1)&
 ######
 # End Test
 ######
-
+# %%
 # ==========================================================================
 # Create Typology Variables for All Dummies
 # ==========================================================================
 
 df['double_counted'] = (df['LISD'].fillna(0) + df['OD'].fillna(0) + df['ARG'].fillna(0) + df['EOG'].fillna(0) +
                        df['AdvG'].fillna(0) + df['ARE'].fillna(0) + df['BE'].fillna(0) + df['SAE'] + df['SMMI'])
-    
-df['typology'] = np.nan
-df['typology'] = np.where(df['LISD'] == 1, 1, df['typology'])   # Low-Income/Susceptible to Displacement
-df['typology'] = np.where(df['OD'] == 1, 2, df['typology'])     # Ongoing Displacement
-df['typology'] = np.where(df['ARG'] == 1, 3, df['typology'])    # At Risk of Gentrification
-df['typology'] = np.where(df['EOG'] == 1, 4, df['typology'])    # Early/Ongoing Gentrification
-df['typology'] = np.where(df['AdvG'] == 1, 5, df['typology'])   # Advanced gentrification
-df['typology'] = np.where(df['SMMI'] == 1, 6, df['typology'])   # Stable Moderate/Mixed Income
-df['typology'] = np.where(df['ARE'] == 1, 7, df['typology'])    # At Risk of Becoming Exclusive
-df['typology'] = np.where(df['BE'] == 1, 8, df['typology'])     # Becoming Exclusive
-df['typology'] = np.where(df['SAE'] == 1, 9, df['typology'])    # Stable/advanced exclusive
-df['typology'] = np.where(df['double_counted']>1, 99, df['typology'])
-
 # %%
-# Include full name of typologies
-df['typology_text'] = np.nan
-df['typology_text'] = np.where(df['LISD'] == 1, 'Low-Income/Susceptible to Displacement', df['typology_text'])
-df['typology_text'] = np.where(df['OD'] == 'Ongoing Displacement', 2, df['typology_text'])
-df['typology_text'] = np.where(df['ARG'] == 'At Risk of Gentrification', 3, df['typology_text'])
-df['typology_text'] = np.where(df['EOG'] == 'Early/Ongoing Gentrification', 4, df['typology_text'])
-df['typology_text'] = np.where(df['AdvG'] == 'Advanced gentrification', 5, df['typology_text'])
-df['typology_text'] = np.where(df['SMMI'] == 'Stable Moderate/Mixed Income', 6, df['typology_text'])
-df['typology_text'] = np.where(df['ARE'] == 'At Risk of Becoming Exclusive', 7, df['typology_text'])
-df['typology_text'] = np.where(df['BE'] == 'Becoming Exclusive', 8, df['typology_text'])
-df['typology_text'] = np.where(df['SAE'] == 'Stable/advanced exclusive', 9, df['typology_text'])
-df['typology_text'] = np.where(df['double_counted']>1, 99, df['typology_text'])
+df['typology'] = "Unknown"
+df['typology'] = np.where(df['LISD'] == 1, 'LISD', df['typology'])   # Low-Income/Susceptible to Displacement
+df['typology'] = np.where(df['OD'] == 1, 'OD', df['typology'])     # Ongoing Displacement
+df['typology'] = np.where(df['ARG'] == 1, 'ARG', df['typology'])    # At Risk of Gentrification
+df['typology'] = np.where(df['EOG'] == 1, 'EOG', df['typology'])    # Early/Ongoing Gentrification
+df['typology'] = np.where(df['AdvG'] == 1, 'AdvG', df['typology'])   # Advanced gentrification
+df['typology'] = np.where(df['SMMI'] == 1, 'SMMI', df['typology'])   # Stable Moderate/Mixed Income
+df['typology'] = np.where(df['ARE'] == 1, 'ARE', df['typology'])    # At Risk of Becoming Exclusive
+df['typology'] = np.where(df['BE'] == 1, 'BE', df['typology'])     # Becoming Exclusive
+df['typology'] = np.where(df['SAE'] == 1, 'SAE', df['typology'])    # Stable/advanced exclusive
+df['typology'] = np.where(df['double_counted']>1, 'Unknown', df['typology'])
 
 # %%
 # Save variables to a pickle file
 with open(pickle_files + '\\4_typology_df_before_loop.pkl', 'wb') as f:
     pickle.dump(df, f)
+
+# %%
+
+with open(pickle_files + '\\4_typology_df_before_loop.pkl', 'rb') as f:
+    df = pickle.load(f)
 # Double Classification Check
 # --------------------------------------------------------------------------
 # %%
-cat_i = list()
+# Include full name of typologies
+df['typology_text'] = "Unknown"
+df['typology_text'] = np.where(df['LISD'] == 1, 'Low-Income/Susceptible to Displacement', df['typology_text'])
+df['typology_text'] = np.where(df['OD'] == 1, 'Ongoing Displacement', df['typology_text'])
+df['typology_text'] = np.where(df['ARG'] == 1, 'At Risk of Gentrification', df['typology_text'])
+df['typology_text'] = np.where(df['EOG'] == 1, 'Early/Ongoing Gentrification', df['typology_text'])
+df['typology_text'] = np.where(df['AdvG'] == 1, 'Advanced gentrification', df['typology_text'])
+df['typology_text'] = np.where(df['SMMI'] == 1, 'Stable Moderate/Mixed Income', df['typology_text'])
+df['typology_text'] = np.where(df['ARE'] == 1, 'At Risk of Becoming Exclusive', df['typology_text'])
+df['typology_text'] = np.where(df['BE'] == 1, 'Becoming Exclusive', df['typology_text'])
+df['typology_text'] = np.where(df['SAE'] == 1, 'Stable/advanced exclusive', df['typology_text'])
+df['typology_text'] = np.where(df['double_counted']>1, "Unknown", df['typology_text'])
 
-# df = data
-for i in range (0, len (df)):
-    categories = list()
-    if df['LISD'][i] == 1:
-        categories.append('LISD')
-    if df['OD'][i] == 1:
-        categories.append('OD')
-    if df['ARG'][i] == 1:
-        categories.append('ARG')
-    if df['EOG'][i] == 1:
-        categories.append('EOG')
-    if df['AdvG'][i] == 1:
-        categories.append('AdvG')
-    if df['SMMI'][i] == 1:
-        categories.append('SMMI')
-    if df['ARE'][i] == 1:
-        categories.append('ARE')
-    if df['BE'][i] == 1:
-        categories.append('BE')
-    if df['SAE'][i] == 1:
-        categories.append('SAE')
-    cat_i.append(str(categories))
-    
-df['typ_cat'] = cat_i
-df.groupby('typ_cat').count()['FIPS']
+
 # %%
 
 ######
@@ -838,6 +815,11 @@ df.loc[indices_to_pad, 'GEOID'] = '0' + df.loc[indices_to_pad, 'GEOID']
 df['GEOID'].str.len().value_counts()
 # %%
 df = df.drop(columns = 'geometry')
+# %%
 df.to_csv(output_path+'/typologies/final_typology_output.csv')
 
 # %%
+with open(pickle_files + '\\final_typology_output.pkl', 'rb') as f:
+    df = pickle.load(f)
+# %%
+
