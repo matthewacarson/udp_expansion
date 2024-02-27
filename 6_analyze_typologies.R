@@ -1,4 +1,4 @@
-
+rm(list = ls())
 # Load libraries ----------------------------------------------------------
 library(sf)
 library(tidyverse)
@@ -30,19 +30,66 @@ udp_typologies <-
 
 load(file = paste0(getwd(), '/data/R_data/fatal_enc_2019.RData'))
 
-#### Rename -- fatal encounters ----------------------------------------------
+##### Recode race and race_imputed & rename --------------------------------------------
 
-fatal_enc_2019 <- joined_2019
+fatal_enc_2019 <- joined_2019 |> 
+mutate(
+  race =
+    case_when(
+      race == "European-American/White" ~ "White",
+      race == "African-American/Black" ~ "Black",
+      race == "Hispanic/Latino" ~ race,
+      TRUE ~ "Other/Unknown"
+    ),
+  race_imputed =
+    case_when(
+      race_imputed == "European-American/White" ~ "White",
+      race_imputed == "African-American/Black" ~ "Black",
+      race_imputed == "Hispanic/Latino" ~ race_imputed,
+      TRUE ~ "Other/Unknown"
+    )
+)
+
 rm(joined_2019) # remove -- not needed
 
 ### All census tracts -- 2019 data -------------------------------------
 
 load(file = paste0(getwd(), '/data/R_data/all_tracts_2019.RData'))
 
-#### Rename all_tracts_2019 --------------------------------------------------------------
+#### Rename all_tracts_2019 ------------------------------------------------
 
 all_tracts_2019 <- income_population_quintiles_2019
 rm(income_population_quintiles_2019)
+
+# Condense UDP categories -------------------------------------------------
+# There are currently too many categories -- combine
+
+udp_typologies <- udp_typologies |> 
+  mutate(
+    typology_text = case_when(
+      # "LIR", # Low-income or at-risk
+      typology %in% c('LISD', 'OD', 'ARG') ~ 'Low-income or at-risk', 
+      # 'GIP', # Gentrification in progress
+      typology %in% c('EOG', 'AdvG', 'SMMI') ~ 'Gentrification in progress', 
+      # "MHIS", # Stable: mixed or high-income
+      typology %in% c('ARE', 'BE', 'SAE') ~ 'Stable: mixed or high-income', 
+      
+      # typology %in% c('LISD', 'OD', 'ARG') ~ ' Low-income or at-risk', # "LIR", 
+      # typology %in% c('EOG', 'AdvG', 'BE') ~ ' Gentrification in progress', # 'GIP
+      # typology %in% c('SMMI', 'ARE', 'SAE') ~ 'Stable: mixed or high-income', # "MHIS",
+      TRUE ~ NA),
+      
+      typology = case_when(
+        # "LIR", # Low-income or at-risk
+        typology %in% c('LISD', 'OD', 'ARG') ~ 'LIR', # ' Low-income or at-risk', 
+        # 'GIP', # Gentrification in progress
+        typology %in% c('EOG', 'AdvG', 'SMMI') ~ ' GIP', # 'Gentrification in progress', 
+        # "MHIS", # Stable: mixed or high-income
+        typology %in% c('ARE', 'BE', 'SAE') ~ 'MHIS', # 'Stable: mixed or high-income', 
+        TRUE ~ NA
+    )
+  )
+
 
 ## Remove geometries since I can join with GEOIDs/FIPS ---------------------
 
@@ -50,7 +97,10 @@ fatal_enc_2019 <- st_drop_geometry(fatal_enc_2019)
 udp_typologies <- st_drop_geometry(udp_typologies)
 
 # Combining -----------------------------------------------
+
 ## Add UDP to 2019 census data ---------------------------------------------
+
+### Columns to keep ---------------------------------------------------------
 
 keep_udp_cols <- c(
   'GEOID', 'pop_18', 'white_18', "pop_00", 
@@ -110,14 +160,16 @@ keep_udp_cols <- c(
   "typology", "typology_text")
 
 
+### Join --------------------------------------------------------------------
+
 all_tracts_2019 <- 
   left_join(
     x = all_tracts_2019,
     y = udp_typologies[keep_udp_cols])
 rm(udp_typologies)
 
-
 ## Add LUOF counts to all_tracts_2019 --------------------------------------
+
 ### Creating LUOF by GEOID frequency table -------------------------------
 
 GEOID_count <- table(fatal_enc_2019$GEOID) |> as.data.frame() |> 
@@ -140,18 +192,21 @@ fatal_enc_2019_udp <-
 rm(fatal_enc_2019)
 
 # Summarizing -------------------------------------------------------------
-## Population by UDP typology ----------------------------------------------
+
+## Rate by UDP typology only -----------------------------------------------
+
+### Population by UDP typology ----------------------------------------------
 
 udp_population <- aggregate(pop_18 ~ typology_text, data = all_tracts_2019, FUN = sum)
 
 
-## LUOF by UDP typology ----------------------------------------------------
+### LUOF by UDP typology ----------------------------------------------------
 
 luof_by_udp <-  table(fatal_enc_2019_udp$typology_text) |> as.data.frame() |> 
   rename(typology_text = Var1, luof_count = Freq)
 
 
-## Combine 'udp_population' and 'LUOF_by_UDP' ------------------------------
+### Combine 'udp_population' and 'LUOF_by_UDP' ------------------------------
 
 summary_udp_luof <- 
   full_join(
@@ -165,40 +220,94 @@ summary_udp_luof <-
 
 rm(udp_population, luof_by_udp)
 
-## Population by UDP and majority race -------------------------------------------
 
-udp_population_majority <- all_tracts_2019 |>  
+## Rate by majority & UDP typology -----------------------------------------
+
+### Population by UDP and majority race ------------------------------------
+
+pop_udp_majority <- all_tracts_2019 |>  
   aggregate(NH_WhiteE ~ typology_text, FUN = sum, data = _) |> 
   mutate(all_tracts_2019 |> aggregate(Hisp_LatinoE ~ typology_text, FUN = sum, data = _)) |> 
   mutate(all_tracts_2019 |> aggregate(NH_BlackE ~ typology_text, FUN = sum, data = _)) |> 
   rename(White = NH_WhiteE, 'Hispanic/Latino' = Hisp_LatinoE, Black = NH_BlackE) |> 
-  pivot_longer(names_to = "race", cols = c("White", "Hispanic/Latino", "Black"), values_to = "population")
+  pivot_longer(names_to = "majority", cols = c("White", "Hispanic/Latino", "Black"), values_to = "population")
   
 
-## LUOF count by majority and race -----------------------------------------
+### LUOF count by typology & majority --------------------------------------
 
 
 luof_by_udp_majority <- 
   table(fatal_enc_2019_udp$typology_text, fatal_enc_2019_udp$Majority) |> 
-  as.data.frame() |> rename(typology_text = Var1, race = Var2, luof_count = Freq)
+  as.data.frame() |> rename(typology_text = Var1, majority = Var2, luof_count = Freq)
 
 
-## Join population and LUOF count ------------------------------------------
+### Join population and LUOF count -----------------------------------------
 
 summary_udp_majority_luof <- 
   full_join(
     luof_by_udp_majority,
-    udp_population_majority,
-    by = join_by(typology_text, race)) |> 
+    pop_udp_majority,
+    by = join_by(typology_text, majority)) |> 
   mutate(
     rt_annual_10m = luof_count / population / 6 * 10000000 
   )
 
-rm(luof_by_udp_majority, udp_population_majority)
+rm(luof_by_udp_majority)
+
+
+# Tables: UDP & majority race & victim race -------------------------------
 
 
 
-# Make Plots --------------------------------------------------------------
+## Population by racial group in UDP & majority tract ----------------------
+# For example, the number of blacks living in majority-white, gentrifying tracts
 
 
+pop_udp_majority_victim <- all_tracts_2019 |>
+  aggregate(NH_WhiteE ~ typology_text + Majority,
+            FUN = sum, 
+            data = _) |>
+  mutate(all_tracts_2019 |>
+           aggregate(
+             Hisp_LatinoE ~ typology_text + Majority,
+             FUN = sum,
+             data = _
+           )) |>
+  mutate(all_tracts_2019 |>
+           aggregate(NH_BlackE ~ typology_text + Majority, FUN = sum, data = _)) |>
+  rename(White = NH_WhiteE,
+         'Hispanic/Latino' = Hisp_LatinoE,
+         Black = NH_BlackE) |>
+  pivot_longer(
+    names_to = "victim_race",
+    cols = c("White", "Hispanic/Latino", "Black"),
+    values_to = "population"
+  )
+
+## LUOF count by UDP & majority race & victim race -------------------------
+
+
+# table(
+#   fatal_enc_2019_udp$typology_text, 
+#   fatal_enc_2019_udp$Majority, 
+#   fatal_enc_2019_udp$race_imputed
+# )
+
+
+luof_udp_maj_victim <- fatal_enc_2019_udp |> 
+  count(typology_text, Majority, race_imputed) |> 
+  rename(victim_race = race_imputed, luof_count = n)
+
+
+## Join population & LUOF count tables -------------------------------------
+
+summary_udp_majority_victim_luof <- 
+  full_join(
+    luof_udp_maj_victim,
+    pop_udp_majority_victim
+  ) |>  mutate(
+    rt_annual_10m = luof_count / population / 6 * 10000000 
+  ) |> na.omit()
+
+print(summary_udp_majority_victim_luof |> arrange(rt_annual_10m), n = 50)
 
