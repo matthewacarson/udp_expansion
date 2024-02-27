@@ -91,6 +91,12 @@ udp_typologies <- udp_typologies |>
   )
 
 
+### Make typologies ordered -------------------------------------------------
+
+typology_order <- c("Low-income or at-risk",
+                    "Gentrification in progress",
+                    "Stable: mixed or high-income")
+
 ## Remove geometries since I can join with GEOIDs/FIPS ---------------------
 
 fatal_enc_2019 <- st_drop_geometry(fatal_enc_2019)
@@ -168,6 +174,7 @@ all_tracts_2019 <-
     y = udp_typologies[keep_udp_cols])
 rm(udp_typologies)
 
+
 ## Add LUOF counts to all_tracts_2019 --------------------------------------
 
 ### Creating LUOF by GEOID frequency table -------------------------------
@@ -220,6 +227,40 @@ summary_udp_luof <-
 
 rm(udp_population, luof_by_udp)
 
+summary_udp_luof$typology_text <- factor(summary_udp_luof$typology_text, levels = typology_order)
+
+#### Plot --------------------------------------------------------------------
+
+ggplot(summary_udp_luof,
+       aes(x = typology_text, y = rt_annual_10m)) +
+  geom_col(color = 'black', fill = 'skyblue') +
+  geom_text(
+    aes(label = round(rt_annual_10m, 1)),
+    position = position_dodge(width = 0.85),
+    vjust = -0.4,
+    color = "black",
+    size = 3
+  ) +
+  labs(title = "Rate of Police Lethal Uses of Force",
+       # subtitle = "Years: [2015-2020]",
+       y = "Annual Rate Per 10 Million",
+       x = "Urban Displacement Project Typology",
+       # "Based on Median Household Income in Census Tracts Where a Lethal Use of Force Occurred",
+       fill = "Majority") +
+  ylim(0, 65) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(color = "black"),
+    axis.text.y = element_text(color = "black"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+ggsave(
+  'plots/udp_only.png',
+  dpi = 'retina',
+  width = 10.4,
+  height = 4.81
+)
 
 ## Rate by majority & UDP typology -----------------------------------------
 
@@ -232,6 +273,8 @@ pop_udp_majority <- all_tracts_2019 |>
   rename(White = NH_WhiteE, 'Hispanic/Latino' = Hisp_LatinoE, Black = NH_BlackE) |> 
   pivot_longer(names_to = "majority", cols = c("White", "Hispanic/Latino", "Black"), values_to = "population")
   
+pop_udp_majority$typology_text <- factor(pop_udp_majority$typology_text, levels = typology_order, ordered = TRUE)
+pop_udp_majority$majority <- factor(pop_udp_majority$majority, ordered = TRUE)
 
 ### LUOF count by typology & majority --------------------------------------
 
@@ -240,6 +283,8 @@ luof_by_udp_majority <-
   table(fatal_enc_2019_udp$typology_text, fatal_enc_2019_udp$Majority) |> 
   as.data.frame() |> rename(typology_text = Var1, majority = Var2, luof_count = Freq)
 
+luof_by_udp_majority$typology_text <- factor(luof_by_udp_majority$typology_text, levels = typology_order, ordered = TRUE)
+luof_by_udp_majority$majority <- factor(luof_by_udp_majority$majority, ordered = TRUE)
 
 ### Join population and LUOF count -----------------------------------------
 
@@ -255,11 +300,43 @@ summary_udp_majority_luof <-
 rm(luof_by_udp_majority)
 
 
-# Tables: UDP & majority race & victim race -------------------------------
+##### Plot -------------------------------------------------------------------
+
+ggplot(summary_udp_majority_luof,
+       aes(x = typology_text, y = rt_annual_10m, fill = majority)) +
+  geom_col(position = 'dodge', color = 'black') +
+  geom_text(
+    aes(label = round(rt_annual_10m, 1)),
+    position = position_dodge(width = 0.85),
+    vjust = -0.4,
+    color = "black",
+    size = 3
+  ) +
+  labs(title = "Rate of Police Lethal Uses of Force",
+       # subtitle = "Years: [2015-2020]",
+       y = "Annual Rate Per 10 Million",
+       x = "Urban Displacement Project Typology",
+       # "Based on Median Household Income in Census Tracts Where a Lethal Use of Force Occurred",
+       fill = "Majority") +
+  ylim(0, 60) +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(color = "black"),
+    axis.text.y = element_text(color = "black"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+ggsave(
+  'plots/udp_majority.png',
+  dpi = 'retina',
+  width = 10.4,
+  height = 4.81)
+
+## Tables: UDP & majority race & victim race -------------------------------
 
 
 
-## Population by racial group in UDP & majority tract ----------------------
+### Population by racial group in UDP & majority tract ----------------------
 # For example, the number of blacks living in majority-white, gentrifying tracts
 
 
@@ -284,7 +361,7 @@ pop_udp_majority_victim <- all_tracts_2019 |>
     values_to = "population"
   )
 
-## LUOF count by UDP & majority race & victim race -------------------------
+### LUOF count by UDP & majority race & victim race -------------------------
 
 
 # table(
@@ -299,7 +376,7 @@ luof_udp_maj_victim <- fatal_enc_2019_udp |>
   rename(victim_race = race_imputed, luof_count = n)
 
 
-## Join population & LUOF count tables -------------------------------------
+### Join population & LUOF count tables -------------------------------------
 
 summary_udp_majority_victim_luof <- 
   full_join(
@@ -309,5 +386,7 @@ summary_udp_majority_victim_luof <-
     rt_annual_10m = luof_count / population / 6 * 10000000 
   ) |> na.omit()
 
-print(summary_udp_majority_victim_luof |> arrange(rt_annual_10m), n = 50)
+# print(summary_udp_majority_victim_luof |> arrange(rt_annual_10m), n = 50)
+write_csv(summary_udp_majority_victim_luof, file = 'summary_udp_majority_victim_luof.csv')
+
 
