@@ -3,6 +3,7 @@ rm(list = ls())
 library(sf)
 library(tidyverse)
 library(reticulate)
+library(jmv)
 
 # Load data ---------------------------------------------------------------
 
@@ -392,11 +393,11 @@ ggplot(summary_udp_victim_race,
     panel.grid.minor.x = element_blank()
   )
 
-ggsave(
-  'plots/udp_victim_race.png',
-  dpi = 'retina',
-  width = 10.4,
-  height = 4.81)
+# ggsave(
+#   'plots/udp_victim_race.png',
+#   dpi = 'retina',
+#   width = 10.4,
+#   height = 4.81)
 
 ######################################################################## #
 ## Tables: UDP & majority race & victim race -------------------------------
@@ -425,6 +426,12 @@ pop_udp_majority_victim <- all_tracts_2019 |>
     cols = c("White", "Hispanic/Latino", "Black"),
     values_to = "population"
   )
+
+ggsave(
+  'plots/udp_victim_race_majority.png',
+  dpi = 'retina',
+  width = 10.4 * 1.5,
+  height = 4.81 * 1.5)
 ### LUOF count by UDP & majority race & victim race -------------------------
 
 
@@ -442,20 +449,43 @@ luof_udp_maj_victim <- fatal_enc_2019_udp |>
 
 ### Join population & LUOF count tables -------------------------------------
 
-summary_udp_majority_victim_luof <- 
-  full_join(
-    luof_udp_maj_victim,
-    pop_udp_majority_victim
-  ) |>  mutate(
-    rt_annual_10m = luof_count / population / 6 * 10000000 
-  ) |> na.omit()
+summary_udp_majority_victim_luof <-
+  full_join(luof_udp_maj_victim,
+            pop_udp_majority_victim) |>  mutate('Annual Rate Per 10 Million Population' = luof_count / population / 6 * 10000000) |>
+  mutate(
+    typology_text =
+      case_when(
+        typology_text == "Low-income or at-risk" ~ "L-income/At-risk",
+        typology_text == "Gentrification in progress" ~ "Gentrifying",
+        typology_text == "Stable: mixed or high-income" ~ "Stable"
+      )
+  ) |>
+  mutate(
+    typology_text = factor(
+      typology_text,
+      labels = unique(typology_text)[c(2, 1, 3)],
+      ordered = TRUE
+    ),
+    victim_race = factor(victim_race)
+  ) |>
+  rename('UDP Typology' = typology_text, Victim = victim_race) |>
+  na.omit()
+
+descriptives(
+  data = summary_udp_majority_victim_luof,
+  vars = "Annual Rate Per 10 Million Population",
+  splitBy = vars("UDP Typology", "Victim", "Majority"),
+  median = F,
+  min = F,
+  max = F,
+  n = F,
+  missing = F,
+  se = F,
+  sd = F,
+  bar = T
+)
 
 # print(summary_udp_majority_victim_luof |> arrange(rt_annual_10m), n = 50)
-write_csv(summary_udp_majority_victim_luof, file = 'summary_udp_majority_victim_luof.csv')
+write_csv(summary_udp_majority_victim_luof, file = 'summary_udp_majority_victim_luof_original.csv')
 
 #### Plot: made in Minitab ---------------------------------------------------
-
-
-
-
-
