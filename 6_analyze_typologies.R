@@ -448,10 +448,11 @@ luof_udp_maj_victim <- fatal_enc_2019_udp |>
 
 
 ### Join population & LUOF count tables -------------------------------------
-
+conflicted::conflicts_prefer(dplyr::filter)
 summary_udp_majority_victim_luof <-
-  full_join(luof_udp_maj_victim,
-            pop_udp_majority_victim) |>  mutate('Annual Rate Per 10 Million Population' = luof_count / population / 6 * 10000000) |>
+  full_join(luof_udp_maj_victim, pop_udp_majority_victim) |>  
+  dplyr::filter(victim_race != "Other/Unknown") |> 
+  mutate('Annual Rate Per 10 Million Population' = luof_count / population / 6 * 10000000) |>
   mutate(
     typology_text =
       case_when(
@@ -484,6 +485,12 @@ descriptives(
   sd = F,
   bar = T
 )
+
+ggsave(
+  'plots/udp_victim_race_majority.png',
+  dpi = 'retina',
+  width = 10.4 * 1.5,
+  height = 4.81 * 1.5)
 
 # print(summary_udp_majority_victim_luof |> arrange(rt_annual_10m), n = 50)
 write_csv(summary_udp_majority_victim_luof, file = 'summary_udp_majority_victim_luof_original.csv')
