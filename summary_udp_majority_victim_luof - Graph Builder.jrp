@@ -1,0 +1,225 @@
+﻿Local Here(
+	(table1 = New Table( "summary_udp_majority_victim_luof 2",
+		Add Rows( 27 ),
+		New Script(
+			"Source",
+			Open(
+				"/C:/Users/madou/OneDrive - UCLA IT Services/1)_PS-Honors/udp_expansion/summary_udp_majority_victim_luof.csv",
+				columns(
+					New Column( "typology_text", Character, "Nominal" ),
+					New Column( "Gentrification Typology", Character, "Nominal" ),
+					New Column( "Majority", Character, "Nominal" ),
+					New Column( "Victim", Character, "Nominal" ),
+					New Column( "Annual Rate per 10 Million Population",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					),
+					New Column( "Black",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					),
+					New Column( "Hispanic/Latino",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					),
+					New Column( "White",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					),
+					New Column( "Gentrification in progress",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					),
+					New Column( "Low-income or at-risk",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					),
+					New Column( "Stable: mixed or high-income",
+						Numeric,
+						"Continuous",
+						Format( "Best", 12 )
+					)
+				),
+				Import Settings(
+					End Of Line( CRLF, CR, LF ),
+					End Of Field( Comma, CSV( 1 ) ),
+					Strip Quotes( 0 ),
+					Use Apostrophe as Quotation Mark( 0 ),
+					Use Regional Settings( 0 ),
+					Scan Whole File( 1 ),
+					Treat empty columns as numeric( 0 ),
+					CompressNumericColumns( 0 ),
+					CompressCharacterColumns( 0 ),
+					CompressAllowListCheck( 0 ),
+					Labels( 1 ),
+					Column Names Start( 1 ),
+					First Named Column( 1 ),
+					Data Starts( 2 ),
+					Lines To Read( "All" ),
+					Year Rule( "20xx" )
+				)
+			)
+		),
+		New Column( "Gentrification Typology",
+			Character,
+			"Nominal",
+			Set Values(
+				{"Low-income or at-risk", "Low-income or at-risk",
+				"Low-income or at-risk", "Low-income or at-risk",
+				"Low-income or at-risk", "Low-income or at-risk",
+				"Low-income or at-risk", "Low-income or at-risk",
+				"Low-income or at-risk", "Gentrification in progress",
+				"Gentrification in progress", "Gentrification in progress",
+				"Gentrification in progress", "Gentrification in progress",
+				"Gentrification in progress", "Gentrification in progress",
+				"Gentrification in progress", "Gentrification in progress",
+				"Stable: mixed or high-income", "Stable: mixed or high-income",
+				"Stable: mixed or high-income", "Stable: mixed or high-income",
+				"Stable: mixed or high-income", "Stable: mixed or high-income",
+				"Stable: mixed or high-income", "Stable: mixed or high-income",
+				"Stable: mixed or high-income"}
+			)
+		),
+		New Column( "Gentrification Typology_abbrev",
+			Character,
+			"Nominal",
+			Set Values(
+				{"LIOAR", "LIOAR", "LIOAR", "LIOAR", "LIOAR", "LIOAR", "LIOAR",
+				"LIOAR", "LIOAR", "GIP", "GIP", "GIP", "GIP", "GIP", "GIP", "GIP",
+				"GIP", "GIP", "SMHI", "SMHI", "SMHI", "SMHI", "SMHI", "SMHI", "SMHI",
+				"SMHI", "SMHI"}
+			)
+		),
+		New Column( "Majority",
+			Character,
+			"Nominal",
+			Set Selected,
+			Set Values(
+				{"Black", "Black", "Black", "Hispanic/Latino", "Hispanic/Latino",
+				"Hispanic/Latino", "White", "White", "White", "Black", "Black",
+				"Black", "Hispanic/Latino", "Hispanic/Latino", "Hispanic/Latino",
+				"White", "White", "White", "Black", "Black", "Black",
+				"Hispanic/Latino", "Hispanic/Latino", "Hispanic/Latino", "White",
+				"White", "White"}
+			)
+		),
+		New Column( "Victim",
+			Character,
+			"Nominal",
+			Set Values(
+				{"Black", "Hispanic/Latino", "White", "Black", "Hispanic/Latino",
+				"White", "Black", "Hispanic/Latino", "White", "Black",
+				"Hispanic/Latino", "White", "Black", "Hispanic/Latino", "White",
+				"Black", "Hispanic/Latino", "White", "Black", "Hispanic/Latino",
+				"White", "Black", "Hispanic/Latino", "White", "Black",
+				"Hispanic/Latino", "White"}
+			)
+		),
+		New Column( "Annual Rate per 10 Million Population",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[78.08960833, 13.39877892, 66.7647294, 156.2923886, 54.41857979,
+				86.00114679, 97.36105231, 46.16858339, 50.07125289, 45.45524541,
+				31.64416766, 38.40192686, 92.7086139, 33.46863133, 53.42391358,
+				65.56284629, 29.01102193, 26.32592261, 33.14886561, 21.86710051,
+				19.85173589, 74.51342732, 29.00926564, 37.16922378, 71.96374987,
+				27.47826469, 17.54376232]
+			),
+			Set Display Width( 119 )
+		),
+		New Column( "Black",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
+				0, 1, 0, 0]
+			)
+		),
+		New Column( "Hispanic/Latino",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,
+				0, 0, 1, 0]
+			)
+		),
+		New Column( "White",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
+				1, 0, 0, 1]
+			)
+		),
+		New Column( "Gentrification in progress",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+				0, 0, 0, 0]
+			)
+		),
+		New Column( "Low-income or at-risk",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0]
+			)
+		),
+		New Column( "Stable: mixed or high-income",
+			Numeric,
+			"Continuous",
+			Format( "Best", 12 ),
+			Set Values(
+				[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+				1, 1, 1, 1]
+			)
+		)
+	)) << Run Formulas;
+	table1 << Graph Builder(
+		Transform Column(
+			"Gentrification Typology'",
+			Set Property( "Configure Levels", 1 ),
+			Set Property(
+				"Value Order",
+				{Custom Order(
+					{"Low-income or at-risk", "Gentrification in progress",
+					"Stable: mixed or high-income"}
+				)}
+			),
+			Formula( :Gentrification Typology )
+		),
+		Size( 1388, 712 ),
+		Show Control Panel( 0 ),
+		Variables(
+			X( :Majority ),
+			Y( :Annual Rate per 10 Million Population ),
+			Group X( :Gentrification Typology' ),
+			Overlay( :Victim )
+		),
+		Elements( Bar( X, Y, Legend( 2 ), Label( "Label by Value" ) ) ),
+		SendToReport(
+			Dispatch(
+				{},
+				"graph title",
+				TextEditBox,
+				{Set Text( "LUOFs: Gentrification, Majority Race, and Victim Race" )
+				}
+			)
+		)
+	);
+)
