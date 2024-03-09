@@ -17,10 +17,10 @@ udp_typologies <-
 
 # save(
 #   udp_typologies,
-  # file = paste0(
-  #   getwd(),
-  #   '/data/outputs/typologies/final_typology_output.RData'
-  # )
+# file = paste0(
+#   getwd(),
+#   '/data/outputs/typologies/final_typology_output.RData'
+# )
 # )
 
 ## Load udp typologies from RData ---------------------------------------
@@ -33,25 +33,23 @@ load(file = paste0(getwd(), '/data/R_data/fatal_enc_2019.RData'))
 
 ##### Recode race and race_imputed & rename --------------------------------------------
 
-fatal_enc_2019 <- joined_2019 |> 
-mutate(
-  race =
-    case_when(
-      race == "European-American/White" ~ "White",
-      race == "African-American/Black" ~ "Black",
-      race == "Hispanic/Latino" ~ race,
-      TRUE ~ "Other/Unknown"
-    ),
-  race_imputed =
-    case_when(
-      race_imputed == "European-American/White" ~ "White",
-      race_imputed == "African-American/Black" ~ "Black",
-      race_imputed == "Hispanic/Latino" ~ race_imputed,
-      TRUE ~ "Other/Unknown"
-    )
-)
-
-rm(joined_2019) # remove -- not needed
+fatal_enc_2019 <- joined_2019 |>
+  mutate(
+    race =
+      case_when(
+        race == "European-American/White" ~ "White",
+        race == "African-American/Black" ~ "Black",
+        race == "Hispanic/Latino" ~ race,
+        TRUE ~ "Other/Unknown"
+      ),
+    race_imputed =
+      case_when(
+        race_imputed == "European-American/White" ~ "White",
+        race_imputed == "African-American/Black" ~ "Black",
+        race_imputed == "Hispanic/Latino" ~ race_imputed,
+        TRUE ~ "Other/Unknown"
+      )
+  ) |> filter(race_imputed != "Other/Unknown")
 
 ### All census tracts -- 2019 data -------------------------------------
 
@@ -60,48 +58,49 @@ load(file = paste0(getwd(), '/data/R_data/all_tracts_2019.RData'))
 #### Rename all_tracts_2019 ------------------------------------------------
 
 all_tracts_2019 <- income_population_quintiles_2019
-rm(income_population_quintiles_2019)
 
 # Condense UDP categories -------------------------------------------------
 # There are currently too many categories -- combine
 
-udp_typologies <- udp_typologies |> 
+udp_typologies <- udp_typologies |>
   mutate(
-    typology_text = case_when(
+    'UDP Typology' = case_when(
       # "LIR", # Low-income or at-risk
-      typology %in% c('LISD', 'OD', 'ARG') ~ 'Low-income or at-risk', 
+      typology %in% c('LISD', 'OD', 'ARG') ~ 'L-income/At-risk',
       # 'GIP', # Gentrification in progress
-      typology %in% c('EOG', 'AdvG', 'SMMI') ~ 'Gentrification in progress', 
+      typology %in% c('EOG', 'AdvG') ~ 'Gentrifying',
       # "MHIS", # Stable: mixed or high-income
-      typology %in% c('ARE', 'BE', 'SAE') ~ 'Stable: mixed or high-income', 
+      typology %in% c('ARE', 'BE', 'SAE', 'SMMI') ~ 'Stable',
       
-      # typology %in% c('LISD', 'OD', 'ARG') ~ ' Low-income or at-risk', # "LIR", 
-      # typology %in% c('EOG', 'AdvG', 'BE') ~ ' Gentrification in progress', # 'GIP
-      # typology %in% c('SMMI', 'ARE', 'SAE') ~ 'Stable: mixed or high-income', # "MHIS",
-      TRUE ~ NA),
-      
-      typology = case_when(
-        # "LIR", # Low-income or at-risk
-        typology %in% c('LISD', 'OD', 'ARG') ~ 'LIR', # ' Low-income or at-risk', 
-        # 'GIP', # Gentrification in progress
-        typology %in% c('EOG', 'AdvG', 'SMMI') ~ ' GIP', # 'Gentrification in progress', 
-        # "MHIS", # Stable: mixed or high-income
-        typology %in% c('ARE', 'BE', 'SAE') ~ 'MHIS', # 'Stable: mixed or high-income', 
-        TRUE ~ NA
+      TRUE ~ NA
+    ),
+    
+    typology = case_when(
+      # "LIR", # Low-income or at-risk
+      typology %in% c('LISD', 'OD', 'ARG') ~ 'LIR',
+      # ' Low-income or at-risk',
+      # 'GIP', # Gentrification in progress
+      typology %in% c('EOG', 'AdvG') ~ ' GIP',
+      # 'Gentrification in progress',
+      # "MHIS", # Stable: mixed or high-income
+      typology %in% c('ARE', 'BE', 'SAE', 'SMMI') ~ 'MHIS',
+      # 'Stable: mixed or high-income',
+      TRUE ~ NA
     )
   )
 
 
 ### Make typologies ordered -------------------------------------------------
 
-typology_order <- c("Low-income or at-risk",
-                    "Gentrification in progress",
-                    "Stable: mixed or high-income")
+typology_order <- c("L-income/At-risk",
+                    "Gentrifying",
+                    "Stable")
 
 ## Remove geometries since I can join with GEOIDs/FIPS ---------------------
 
 fatal_enc_2019 <- st_drop_geometry(fatal_enc_2019)
 udp_typologies <- st_drop_geometry(udp_typologies)
+all_tracts_2019 <- st_drop_geometry(all_tracts_2019)
 
 # Combining -----------------------------------------------
 
@@ -110,133 +109,272 @@ udp_typologies <- st_drop_geometry(udp_typologies)
 ### Columns to keep ---------------------------------------------------------
 
 keep_udp_cols <- c(
-  'GEOID', 'pop_18', 'white_18', "pop_00", 
-  "white_00", "hu_00", "ohu_00", "rhu_00", "total_25_00", 
-  "male_25_col_bd_00", "male_25_col_md_00", "male_25_col_psd_00", 
-  "male_25_col_phd_00", "female_25_col_bd_00", "female_25_col_md_00", 
-  "female_25_col_psd_00", "female_25_col_phd_00", "mhval_00", "mrent_00", 
-  "hh_00", "hinc_00", "trtid00", "pop_90", "hh_90", "white_90", 
-  "total_25_col_9th_90", "total_25_col_12th_90", 
-  "total_25_col_hs_90", "total_25_col_sc_90", "total_25_col_ad_90", 
-  "total_25_col_bd_90", "total_25_col_gd_90", "hinc_90", "ohu_90", 
-  "rhu_90", "mrent_90", "mhval_90", "trtid90", "inc80_18", "inc120_18", 
-  "inc80_00", "inc120_00", "inc80_90", "low_80120_18", "mod_80120_18", 
-  "high_80120_18", "low_pdmt_medhhinc_18", "high_pdmt_medhhinc_18", 
-  "mod_pdmt_medhhinc_18", "mix_low_medhhinc_18", "mix_mod_medhhinc_18", 
-  "mix_high_medhhinc_18", "inc_cat_medhhinc_18", "inc_cat_medhhinc_encoded18", 
-  "low_80120_00", "mod_80120_00", "high_80120_00", "low_pdmt_medhhinc_00", 
-  "high_pdmt_medhhinc_00", "mod_pdmt_medhhinc_00", "mix_low_medhhinc_00", 
-  "mix_mod_medhhinc_00", "mix_high_medhhinc_00", "inc_cat_medhhinc_00", 
-  "inc_cat_medhhinc_encoded00", "per_all_li_90", "per_all_li_00", 
-  "per_all_li_18", "all_li_count_90", "all_li_count_00", "all_li_count_18", 
-  "real_mhval_90", "real_mrent_90", "real_hinc_90", "real_mhval_00", 
-  "real_mrent_00", "real_hinc_00", "real_mhval_12", "real_mrent_12", 
-  "real_mhval_18", "real_mrent_18", "real_hinc_18", "per_nonwhite_90", 
-  "per_nonwhite_00", "per_nonwhite_18", "hu_90", "per_rent_90", 
-  "per_rent_00", "hu_18", "per_rent_18", "total_25_90", "per_col_90", 
-  "male_25_col_00", "female_25_col_00", "total_25_col_00", "per_col_00", 
-  "per_col_18", "per_units_pre50_18", "per_limove_18", "mov_tot_w_income_18", 
-  "per_limove_12", "mov_tot_w_income_12", "lmh_flag_encoded", "lmh_flag_category", 
-  "pctch_real_mhval_00_18", "pctch_real_mrent_12_18", "rent_decrease", 
-  "rent_marginal", "rent_increase", "rent_rapid_increase", "house_decrease", 
-  "house_marginal", "house_increase", "house_rapid_increase", "tot_decrease", 
-  "tot_marginal", "tot_increase", "tot_rapid_increase", "change_flag_encoded", 
-  "change_flag_category", "per_ch_zillow_12_18", "ab_50pct_ch", 
-  "ab_90percentile_ch", "rent_50pct_ch", "rent_90percentile_ch", 
-  "hv_abrm_ch", "rent_abrm_ch", "pctch_real_mhval_90_00", "pctch_real_mrent_90_00", 
-  "pctch_real_hinc_90_00", "pctch_real_mrent_00_18", "pctch_real_hinc_00_18", 
-  "ch_all_li_count_90_00", "ch_all_li_count_00_18", "ch_per_col_90_00", 
-  "ch_per_col_00_18", "ch_per_limove_12_18", "pop00flag", "aboverm_per_all_li_90", 
-  "aboverm_per_all_li_00", "aboverm_per_all_li_18", "aboverm_per_nonwhite_18", 
-  "aboverm_per_nonwhite_90", "aboverm_per_nonwhite_00", "aboverm_per_rent_90", 
-  "aboverm_per_rent_00", "aboverm_per_rent_18", "aboverm_per_col_90", 
-  "aboverm_per_col_00", "aboverm_per_col_18", "aboverm_real_mrent_90", 
-  "aboverm_real_mrent_00", "aboverm_real_mrent_12", "aboverm_real_mrent_18", 
-  "aboverm_real_mhval_90", "aboverm_real_mhval_00", "aboverm_real_mhval_18", 
-  "aboverm_pctch_real_mhval_00_18", "aboverm_pctch_real_mrent_00_18", 
-  "aboverm_pctch_real_mrent_12_18", "aboverm_pctch_real_mhval_90_00", 
-  "aboverm_pctch_real_mrent_90_00", "lostli_00", "lostli_18", 
-  "aboverm_pctch_real_hinc_90_00", "aboverm_pctch_real_hinc_00_18", 
-  "aboverm_ch_per_col_90_00", "aboverm_ch_per_col_00_18", 
-  "aboverm_per_units_pre50_18", "presence_ph_LIHTC", 
-  "vul_gent_90", "vul_gent_00", "vul_gent_18", "hotmarket_00", 
-  "hotmarket_18", "gent_90_00", "gent_90_00_urban", "gent_00_18", 
-  "gent_00_18_urban", "dp_PChRent", "dp_RentGap", "tr_rent_gap", 
-  "rm_rent_gap", "dense", "SAE", "AdvG", "ARE", "BE", "SMMI", "ARG", 
-  "EOG", "OD", "OD_loss", "LISD", "double_counted", 
-  "typology", "typology_text")
+  'GEOID',
+  'pop_18',
+  'white_18',
+  "pop_00",
+  "white_00",
+  "hu_00",
+  "ohu_00",
+  "rhu_00",
+  "total_25_00",
+  "male_25_col_bd_00",
+  "male_25_col_md_00",
+  "male_25_col_psd_00",
+  "male_25_col_phd_00",
+  "female_25_col_bd_00",
+  "female_25_col_md_00",
+  "female_25_col_psd_00",
+  "female_25_col_phd_00",
+  "mhval_00",
+  "mrent_00",
+  "hh_00",
+  "hinc_00",
+  "trtid00",
+  "pop_90",
+  "hh_90",
+  "white_90",
+  "total_25_col_9th_90",
+  "total_25_col_12th_90",
+  "total_25_col_hs_90",
+  "total_25_col_sc_90",
+  "total_25_col_ad_90",
+  "total_25_col_bd_90",
+  "total_25_col_gd_90",
+  "hinc_90",
+  "ohu_90",
+  "rhu_90",
+  "mrent_90",
+  "mhval_90",
+  "trtid90",
+  "inc80_18",
+  "inc120_18",
+  "inc80_00",
+  "inc120_00",
+  "inc80_90",
+  "low_80120_18",
+  "mod_80120_18",
+  "high_80120_18",
+  "low_pdmt_medhhinc_18",
+  "high_pdmt_medhhinc_18",
+  "mod_pdmt_medhhinc_18",
+  "mix_low_medhhinc_18",
+  "mix_mod_medhhinc_18",
+  "mix_high_medhhinc_18",
+  "inc_cat_medhhinc_18",
+  "inc_cat_medhhinc_encoded18",
+  "low_80120_00",
+  "mod_80120_00",
+  "high_80120_00",
+  "low_pdmt_medhhinc_00",
+  "high_pdmt_medhhinc_00",
+  "mod_pdmt_medhhinc_00",
+  "mix_low_medhhinc_00",
+  "mix_mod_medhhinc_00",
+  "mix_high_medhhinc_00",
+  "inc_cat_medhhinc_00",
+  "inc_cat_medhhinc_encoded00",
+  "per_all_li_90",
+  "per_all_li_00",
+  "per_all_li_18",
+  "all_li_count_90",
+  "all_li_count_00",
+  "all_li_count_18",
+  "real_mhval_90",
+  "real_mrent_90",
+  "real_hinc_90",
+  "real_mhval_00",
+  "real_mrent_00",
+  "real_hinc_00",
+  "real_mhval_12",
+  "real_mrent_12",
+  "real_mhval_18",
+  "real_mrent_18",
+  "real_hinc_18",
+  "per_nonwhite_90",
+  "per_nonwhite_00",
+  "per_nonwhite_18",
+  "hu_90",
+  "per_rent_90",
+  "per_rent_00",
+  "hu_18",
+  "per_rent_18",
+  "total_25_90",
+  "per_col_90",
+  "male_25_col_00",
+  "female_25_col_00",
+  "total_25_col_00",
+  "per_col_00",
+  "per_col_18",
+  "per_units_pre50_18",
+  "per_limove_18",
+  "mov_tot_w_income_18",
+  "per_limove_12",
+  "mov_tot_w_income_12",
+  "lmh_flag_encoded",
+  "lmh_flag_category",
+  "pctch_real_mhval_00_18",
+  "pctch_real_mrent_12_18",
+  "rent_decrease",
+  "rent_marginal",
+  "rent_increase",
+  "rent_rapid_increase",
+  "house_decrease",
+  "house_marginal",
+  "house_increase",
+  "house_rapid_increase",
+  "tot_decrease",
+  "tot_marginal",
+  "tot_increase",
+  "tot_rapid_increase",
+  "change_flag_encoded",
+  "change_flag_category",
+  "per_ch_zillow_12_18",
+  "ab_50pct_ch",
+  "ab_90percentile_ch",
+  "rent_50pct_ch",
+  "rent_90percentile_ch",
+  "hv_abrm_ch",
+  "rent_abrm_ch",
+  "pctch_real_mhval_90_00",
+  "pctch_real_mrent_90_00",
+  "pctch_real_hinc_90_00",
+  "pctch_real_mrent_00_18",
+  "pctch_real_hinc_00_18",
+  "ch_all_li_count_90_00",
+  "ch_all_li_count_00_18",
+  "ch_per_col_90_00",
+  "ch_per_col_00_18",
+  "ch_per_limove_12_18",
+  "pop00flag",
+  "aboverm_per_all_li_90",
+  "aboverm_per_all_li_00",
+  "aboverm_per_all_li_18",
+  "aboverm_per_nonwhite_18",
+  "aboverm_per_nonwhite_90",
+  "aboverm_per_nonwhite_00",
+  "aboverm_per_rent_90",
+  "aboverm_per_rent_00",
+  "aboverm_per_rent_18",
+  "aboverm_per_col_90",
+  "aboverm_per_col_00",
+  "aboverm_per_col_18",
+  "aboverm_real_mrent_90",
+  "aboverm_real_mrent_00",
+  "aboverm_real_mrent_12",
+  "aboverm_real_mrent_18",
+  "aboverm_real_mhval_90",
+  "aboverm_real_mhval_00",
+  "aboverm_real_mhval_18",
+  "aboverm_pctch_real_mhval_00_18",
+  "aboverm_pctch_real_mrent_00_18",
+  "aboverm_pctch_real_mrent_12_18",
+  "aboverm_pctch_real_mhval_90_00",
+  "aboverm_pctch_real_mrent_90_00",
+  "lostli_00",
+  "lostli_18",
+  "aboverm_pctch_real_hinc_90_00",
+  "aboverm_pctch_real_hinc_00_18",
+  "aboverm_ch_per_col_90_00",
+  "aboverm_ch_per_col_00_18",
+  "aboverm_per_units_pre50_18",
+  "presence_ph_LIHTC",
+  "vul_gent_90",
+  "vul_gent_00",
+  "vul_gent_18",
+  "hotmarket_00",
+  "hotmarket_18",
+  "gent_90_00",
+  "gent_90_00_urban",
+  "gent_00_18",
+  "gent_00_18_urban",
+  "dp_PChRent",
+  "dp_RentGap",
+  "tr_rent_gap",
+  "rm_rent_gap",
+  "dense",
+  "SAE",
+  "AdvG",
+  "ARE",
+  "BE",
+  "SMMI",
+  "ARG",
+  "EOG",
+  "OD",
+  "OD_loss",
+  "LISD",
+  "double_counted",
+  "typology",
+  'UDP Typology'
+)
 
 
 ### Join --------------------------------------------------------------------
 
-all_tracts_2019 <- 
-  left_join(
-    x = all_tracts_2019,
-    y = udp_typologies[keep_udp_cols])
-rm(udp_typologies)
+all_tracts_2019 <-
+  left_join(x = all_tracts_2019,
+            y = udp_typologies[keep_udp_cols],
+            by = join_by(GEOID))
 
 
 ## Add LUOF counts to all_tracts_2019 --------------------------------------
 
 ### Creating LUOF by GEOID frequency table -------------------------------
 
-GEOID_count <- table(fatal_enc_2019$GEOID) |> as.data.frame() |> 
-  rename(GEOID = Var1, luof_count = Freq)
+GEOID_count <- table(fatal_enc_2019$GEOID) |> as.data.frame() |>
+  rename(GEOID = Var1, luof_count = Freq) |>
+  mutate(luof_count =
+           case_when(is.na(luof_count) ~ 0,
+                     TRUE ~ luof_count))
 
-### Join frequency table with all_tracts_2019 -------------------------------
+### Join frequency table with all_tracts_2019 ------------------------------
 
-all_tracts_2019 <- 
-  full_join(
-    all_tracts_2019,
-    GEOID_count
-  )
+all_tracts_2019 <-
+  left_join(all_tracts_2019,
+            GEOID_count)
 
-## Bring UDP typologies into fatal encounters df ---------------------------
+## Bring UDP typologies into fatal encounters df --------------------------
 
 fatal_enc_2019_udp <-
   left_join(x = fatal_enc_2019,
             y = all_tracts_2019)
 
-rm(fatal_enc_2019)
 
 # Summarizing -------------------------------------------------------------
 
-## Tables: by UDP typology only -----------------------------------------------
+## Tables: by UDP typology only --------------------------------------------
 
-### Population by UDP typology ----------------------------------------------
+### Population by UDP typology ---------------------------------------------
 
-pop_udp_only <- aggregate(pop_18 ~ typology_text, data = all_tracts_2019, FUN = sum)
+pop_udp_only <-
+  aggregate(pop_18 ~ `UDP Typology`, data = all_tracts_2019, FUN = sum)
 
 
-### LUOF by UDP typology ----------------------------------------------------
+### LUOF by UDP typology ---------------------------------------------------
 
-luof_by_udp <-  table(fatal_enc_2019_udp$typology_text) |> as.data.frame() |> 
-  rename(typology_text = Var1, luof_count = Freq)
+luof_by_udp <-
+  table(fatal_enc_2019_udp$`UDP Typology`) |> as.data.frame() |>
+  rename('UDP Typology' = Var1, luof_count = Freq)
 
 
 ### Combine 'pop_udp_only' and 'LUOF_by_UDP' ------------------------------
 
-summary_udp_luof <- 
-  full_join(
-    luof_by_udp,
-    pop_udp_only,
-    by = join_by(typology_text)
-  ) |> 
-  mutate(
-    rt_annual_10m = luof_count / pop_18 / 6 * 10000000
-  )
+summary_udp_luof <-
+  full_join(luof_by_udp,
+            pop_udp_only,
+            by = join_by('UDP Typology')) |>
+  mutate('Annual Rate Per 10 Million Population' = luof_count / pop_18 / 6 * 10000000)
 
-# rm(luof_by_udp)
-
-summary_udp_luof$typology_text <- factor(summary_udp_luof$typology_text, levels = typology_order)
+summary_udp_luof$`UDP Typology` <-
+  factor(summary_udp_luof$`UDP Typology`, levels = typology_order)
 
 #### Plot --------------------------------------------------------------------
 
 ggplot(summary_udp_luof,
-       aes(x = typology_text, y = rt_annual_10m)) +
-  geom_col(color = 'black', fill = 'skyblue') +
+       aes(x = `UDP Typology`, y = `Annual Rate Per 10 Million Population`)) +
+  geom_col(color = 'black', fill = '#a6c4f1') +
   geom_text(
-    aes(label = round(rt_annual_10m, 1)),
+    aes(label = round(`Annual Rate Per 10 Million Population`, 1)),
     position = position_dodge(width = 0.85),
     vjust = -0.4,
     color = "black",
@@ -256,6 +394,23 @@ ggplot(summary_udp_luof,
     panel.grid.major.x = element_blank(),
     panel.grid.minor.x = element_blank()
   )
+
+descriptives(
+  data = summary_udp_luof,
+  vars = "Annual Rate Per 10 Million Population",
+  splitBy = 'UDP Typology',
+  mean = F,
+  median = F,
+  min = F,
+  max = F,
+  n = F,
+  missing = F,
+  se = F,
+  sd = F,
+  bar = T,
+  barCounts = T
+)
+
 # ggsave(
 #   'plots/udp_only.png',
 #   dpi = 'retina',
@@ -263,59 +418,67 @@ ggplot(summary_udp_luof,
 #   height = 4.81
 # )
 
-## Rate by majority & UDP typology -----------------------------------------
+write_csv(x = summary_udp_luof[, c('UDP Typology', 'luof_count', 'Annual Rate Per 10 Million Population')], file = "summary_udp_luof.csv")
 
-### Population by UDP and majority race ------------------------------------
+## Rate by Majority & UDP typology -----------------------------------------
+
+### Population by UDP and Majority race ------------------------------------
 
 pop_udp_majority <- all_tracts_2019 |>
-  aggregate(NH_WhiteE ~ typology_text, FUN = sum, data = _) |>
+  aggregate(NH_WhiteE ~ `UDP Typology`, FUN = sum, data = _) |>
   mutate(all_tracts_2019 |>
-           aggregate(Hisp_LatinoE ~ typology_text, FUN = sum, data = _)) |>
+           aggregate(Hisp_LatinoE ~ `UDP Typology`, FUN = sum, data = _)) |>
   mutate(all_tracts_2019 |>
-           aggregate(NH_BlackE ~ typology_text, FUN = sum, data = _)) |>
+           aggregate(NH_BlackE ~ `UDP Typology`, FUN = sum, data = _)) |>
   rename('White' = NH_WhiteE,
          'Hispanic/Latino' = Hisp_LatinoE,
          'Black' = NH_BlackE) |>
   pivot_longer(
-    names_to = "majority",
+    names_to = "Majority",
     cols = c("White", "Hispanic/Latino", "Black"),
     values_to = "population"
   )
-  
-pop_udp_majority$typology_text <- factor(pop_udp_majority$typology_text, levels = typology_order, ordered = TRUE)
-pop_udp_majority$majority <- factor(pop_udp_majority$majority, ordered = TRUE)
-
-### LUOF count by typology & majority --------------------------------------
 
 
-luof_by_udp_majority <- 
-  table(fatal_enc_2019_udp$typology_text, fatal_enc_2019_udp$Majority) |> 
-  as.data.frame() |> rename(typology_text = Var1, majority = Var2, luof_count = Freq)
+### LUOF count by typology & Majority --------------------------------------
 
-luof_by_udp_majority$typology_text <- factor(luof_by_udp_majority$typology_text, levels = typology_order, ordered = TRUE)
-luof_by_udp_majority$majority <- factor(unique(luof_by_udp_majority$majority), ordered = TRUE)
+
+luof_by_udp_majority <-
+  table(fatal_enc_2019_udp$`UDP Typology`,
+        fatal_enc_2019_udp$Majority) |>
+  as.data.frame() |> rename(`UDP Typology` = Var1,
+                            Majority = Var2,
+                            luof_count = Freq)
+
+
 
 ### Join population and LUOF count -----------------------------------------
 
-summary_udp_majority_luof <- 
-  full_join(
-    luof_by_udp_majority,
+summary_udp_majority_luof <-
+  left_join(
+    as.data.frame(luof_by_udp_majority),
     pop_udp_majority,
-    by = join_by(typology_text, majority)) |> 
-  mutate(
-    rt_annual_10m = luof_count / population / 6 * 10000000 
-  )
+    by = join_by(`UDP Typology`, Majority)
+  ) |>
+  mutate('Annual Rate Per 10 Million Population' = luof_count / population / 6 * 10000000) |>
+  select(`UDP Typology`, Majority, 'Annual Rate Per 10 Million Population')
 
-rm(luof_by_udp_majority)
+
+summary_udp_majority_luof$`UDP Typology` <-
+  factor(summary_udp_majority_luof$`UDP Typology`,
+         levels = typology_order,
+         ordered = TRUE)
+summary_udp_majority_luof$Majority <-
+  factor(summary_udp_majority_luof$Majority, ordered = TRUE)
 
 
 ##### Plot -------------------------------------------------------------------
 
 ggplot(summary_udp_majority_luof,
-       aes(x = typology_text, y = rt_annual_10m, fill = majority)) +
+       aes(x = `UDP Typology`, y = `Annual Rate Per 10 Million Population`, fill = Majority)) +
   geom_col(position = 'dodge', color = 'black') +
   geom_text(
-    aes(label = round(rt_annual_10m, 1)),
+    aes(label = round(`Annual Rate Per 10 Million Population`, 1)),
     position = position_dodge(width = 0.85),
     vjust = -0.4,
     color = "black",
@@ -335,11 +498,31 @@ ggplot(summary_udp_majority_luof,
     panel.grid.major.x = element_blank(),
     panel.grid.minor.x = element_blank()
   )
+
+
+descriptives(
+  data = summary_udp_majority_luof,
+  vars = "Annual Rate Per 10 Million Population",
+  splitBy = vars("UDP Typology", "Majority"),
+  median = F,
+  min = F,
+  max = F,
+  n = F,
+  missing = F,
+  se = F,
+  sd = F,
+  bar = T,
+  barCounts = TRUE
+)
+
 # ggsave(
 #   'plots/udp_majority.png',
 #   dpi = 'retina',
 #   width = 10.4,
 #   height = 4.81)
+
+write_csv(x = summary_udp_majority_luof,
+          file = 'summary_udp_majority_luof.csv')
 
 ######################################################################## #
 ## Tables: Rate by victim race and UDP typology ------------------------------------
@@ -348,31 +531,33 @@ ggplot(summary_udp_majority_luof,
 
 ### LUOF count --------------------------------------------------------------
 
-luof_udp_victim_race <- fatal_enc_2019_udp |> 
-  count(typology_text, race_imputed) |> 
-  rename(victim_race = race_imputed, luof_count = n) |> 
+luof_udp_victim_race <- fatal_enc_2019_udp |>
+  count(`UDP Typology`, race_imputed) |>
+  rename(Victim = race_imputed, luof_count = n) |>
   na.omit()
 
 ### Join population & LUOF count tables -------------------------------------
 
-summary_udp_victim_race <- 
-  full_join(
-    luof_udp_victim_race,
-    pop_udp_majority |> rename(victim_race = majority),
-    by = join_by(typology_text, victim_race)
-  ) |>  mutate(
-    rt_annual_10m = luof_count / population / 6 * 10000000 
-  ) |> na.omit()
+summary_udp_victim_race <-
+  left_join(
+    luof_udp_victim_race |> filter(Victim != 'Other/Unknown'),
+    pop_udp_majority |> rename(Victim = Majority),
+    by = join_by(`UDP Typology`, Victim)
+  ) |>  mutate('Annual Rate Per 10 Million Population' = luof_count / population / 6 * 10000000)
 
-summary_udp_victim_race$typology_text <- factor(summary_udp_victim_race$typology_text, levels = typology_order, ordered = T)
-summary_udp_victim_race$victim_race <- factor(summary_udp_victim_race$victim_race, ordered = T)
+summary_udp_victim_race$`UDP Typology` <-
+  factor(summary_udp_victim_race$`UDP Typology`,
+         levels = typology_order,
+         ordered = T)
+summary_udp_victim_race$Victim <-
+  factor(summary_udp_victim_race$Victim, ordered = T)
 #### Plot --------------------------------------------------------------------
 
 ggplot(summary_udp_victim_race,
-       aes(x = typology_text, y = rt_annual_10m, fill = victim_race)) +
+       aes(x = `UDP Typology`, y = `Annual Rate Per 10 Million Population`, fill = Victim)) +
   geom_col(position = 'dodge', color = 'black') +
   geom_text(
-    aes(label = round(rt_annual_10m, 1)),
+    aes(label = round(`Annual Rate Per 10 Million Population`, 1)),
     position = position_dodge(width = 0.85),
     vjust = -0.4,
     color = "black",
@@ -393,83 +578,92 @@ ggplot(summary_udp_victim_race,
     panel.grid.minor.x = element_blank()
   )
 
+descriptives(
+  data = summary_udp_victim_race,
+  vars = "Annual Rate Per 10 Million Population",
+  splitBy = vars("UDP Typology", "Victim"),
+  median = F,
+  min = F,
+  max = F,
+  n = F,
+  missing = F,
+  se = F,
+  sd = F,
+  bar = T,
+  
+)
+
 # ggsave(
 #   'plots/udp_victim_race.png',
 #   dpi = 'retina',
 #   width = 10.4,
 #   height = 4.81)
 
-######################################################################## #
-## Tables: UDP & majority race & victim race -------------------------------
+write_csv(x = summary_udp_victim_race,
+          file = 'summary_udp_victim_race.csv')
 
-### Population by racial group in UDP & majority tract ----------------------
-# For example, the number of blacks living in majority-white, gentrifying tracts
+######################################################################## #
+## Tables: UDP & Majority race & victim race -------------------------------
+
+### Population by racial group in UDP & Majority tract ----------------------
+# For example, the number of blacks living in Majority-white, gentrifying tracts
 
 
 pop_udp_majority_victim <- all_tracts_2019 |>
-  aggregate(NH_WhiteE ~ typology_text + Majority,
-            FUN = sum, 
+  aggregate(NH_WhiteE ~ `UDP Typology` + Majority,
+            FUN = sum,
             data = _) |>
   mutate(all_tracts_2019 |>
            aggregate(
-             Hisp_LatinoE ~ typology_text + Majority,
+             Hisp_LatinoE ~ `UDP Typology` + Majority,
              FUN = sum,
              data = _
            )) |>
   mutate(all_tracts_2019 |>
-           aggregate(NH_BlackE ~ typology_text + Majority, FUN = sum, data = _)) |>
+           aggregate(
+             NH_BlackE ~ `UDP Typology` + Majority,
+             FUN = sum,
+             data = _
+           )) |>
   rename('White' = NH_WhiteE,
          'Hispanic/Latino' = Hisp_LatinoE,
          'Black' = NH_BlackE) |>
   pivot_longer(
-    names_to = "victim_race",
+    names_to = "Victim",
     cols = c("White", "Hispanic/Latino", "Black"),
     values_to = "population"
   )
 
-ggsave(
-  'plots/udp_victim_race_majority.png',
-  dpi = 'retina',
-  width = 10.4 * 1.5,
-  height = 4.81 * 1.5)
-### LUOF count by UDP & majority race & victim race -------------------------
+### LUOF count by UDP & Majority race & victim race -------------------------
 
 
 # table(
-#   fatal_enc_2019_udp$typology_text, 
-#   fatal_enc_2019_udp$Majority, 
+#   fatal_enc_2019_udp$`UDP Typology`,
+#   fatal_enc_2019_udp$Majority,
 #   fatal_enc_2019_udp$race_imputed
 # )
 
 
-luof_udp_maj_victim <- fatal_enc_2019_udp |> 
-  count(typology_text, Majority, race_imputed) |> 
-  rename(victim_race = race_imputed, luof_count = n)
+luof_udp_majority_victim <- fatal_enc_2019_udp |>
+  count(`UDP Typology`, Majority, race_imputed) |>
+  rename(Victim = race_imputed, luof_count = n)
 
 
 ### Join population & LUOF count tables -------------------------------------
 conflicted::conflicts_prefer(dplyr::filter)
 summary_udp_majority_victim_luof <-
-  full_join(luof_udp_maj_victim, pop_udp_majority_victim) |>  
-  dplyr::filter(victim_race != "Other/Unknown") |> 
+  full_join(luof_udp_majority_victim, pop_udp_majority_victim) |>
+  dplyr::filter(Victim != "Other/Unknown") |>
   mutate('Annual Rate Per 10 Million Population' = luof_count / population / 6 * 10000000) |>
   mutate(
-    typology_text =
-      case_when(
-        typology_text == "Low-income or at-risk" ~ "L-income/At-risk",
-        typology_text == "Gentrification in progress" ~ "Gentrifying",
-        typology_text == "Stable: mixed or high-income" ~ "Stable"
-      )
-  ) |>
-  mutate(
-    typology_text = factor(
-      typology_text,
-      labels = unique(typology_text)[c(2, 1, 3)],
+    `UDP Typology` = factor(
+      `UDP Typology`,
+      labels = unique(`UDP Typology`)[c(2, 1, 3)],
       ordered = TRUE
     ),
-    victim_race = factor(victim_race)
+    Victim = factor(Victim)
   ) |>
-  rename('UDP Typology' = typology_text, Victim = victim_race) |>
+  rename('UDP Typology' = 'UDP Typology', Victim = Victim) |>
   na.omit()
 
 descriptives(
@@ -483,16 +677,19 @@ descriptives(
   missing = F,
   se = F,
   sd = F,
-  bar = T
+  bar = T,
+  barCounts = TRUE
 )
 
 ggsave(
   'plots/udp_victim_race_majority.png',
   dpi = 'retina',
   width = 10.4 * 1.5,
-  height = 4.81 * 1.5)
+  height = 4.81 * 1.5
+)
 
-# print(summary_udp_majority_victim_luof |> arrange(rt_annual_10m), n = 50)
+# print(summary_udp_majority_victim_luof |> arrange('Annual Rate Per 10 Million Population'), n = 50)
 write_csv(summary_udp_majority_victim_luof, file = 'summary_udp_majority_victim_luof_original.csv')
 
 #### Plot: made in Minitab ---------------------------------------------------
+

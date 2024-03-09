@@ -1,0 +1,54 @@
+NCHART 'Typology' 'Majority' 'Victim Race';
+FUNCTION 'rt_annual_10m';
+MEAN;
+OVERLAY;
+CLUSTER 'Victim Race';
+TITLE "Rate of LUOFs, 2015-2020";
+AXLABEL 1 "Typology/Majority";
+AXLABEL 2 "Annual Rate per 10 Million Population";
+CATONLY.
+
+
+
+# THIS WORKED
+
+NCHART 'Typology' 'Majority' 'Victim Race';
+FUNCTION 'rt_annual_10m';
+MEAN;
+OVERLAY;
+CLUSTER 'Victim Race';
+CATONLY.
+
+
+# Original Minitab-generated commands
+NCHART 'Typology' 'Majority' 'Victim Race';
+FUNCTION 'rt_annual_10m';
+SUM;
+OVERLAY;
+CLUSTER 'Victim Race';
+CATONLY.
+
+
+
+
+
+NCHART 'Typology' 'Majority' 'Victim Race';
+FUNCTION 'rt_annual_10m';
+SUM;
+OVERLAY;
+CLUSTER 'Victim Race';
+CATONLY;
+TITLE "Rate of LUOFs, 2015-2020".
+
+
+# This worked
+
+INTP 'rt_annual_10m' * 'Typology' ;
+GROU 'Majority' 'Victim Race' ;
+TITLE "Rate of LUOFs, 2015-2020";
+# AXLABEL 1 'BLAH';
+AXLABEL 2 "Annual Rate per 10 Million Population";
+# NOPERFOOTNOTE;
+BAR 'Victim Race'.
+Save "C:\Users\madou\OneDrive - UCLA IT Services\1)_PS-Honors\HP_PC\udp_expansion_HP\udp_expansion.mpx";
+Project.
