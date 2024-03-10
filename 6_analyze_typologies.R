@@ -682,9 +682,9 @@ summary_udp_majority_victim_luof <-
   na.omit()
 
 descriptives(
-  data = summary_udp_majority_victim_luof,
+  data = summary_udp_majority_victim_luof, # mutate(Majority = paste('Majority:', Majority))
   vars = "Annual Rate Per 10 Million Population",
-  splitBy = vars("UDP Typology", "Victim", "Majority"),
+  splitBy = vars("Majority", "Victim", "UDP Typology"),
   mean = F,
   median = F,
   min = F,
@@ -698,7 +698,7 @@ descriptives(
 )
 
 ggsave(
-  'plots/udp_victim_race_majority.png',
+  'plots/udp_race_majority_victim_legend.png',
   dpi = 'retina',
   width = 10.4 * 1.5,
   height = 4.81 * 1.5
@@ -715,3 +715,25 @@ saveWorkbook(wb, "all_udp_summary_tables.xlsx", overwrite = TRUE)
 
 #### Plot: made in Minitab ----------------------------------
 
+descriptives(
+  data = summary_udp_majority_victim_luof,
+  vars = "Annual Rate Per 10 Million Population",
+  splitBy = vars( "Victim", "Majority", "UDP Typology"),
+  mean = F,
+  median = F,
+  min = F,
+  max = F,
+  n = F,
+  missing = F,
+  se = F,
+  sd = F,
+  bar = T,
+  barCounts = TRUE
+)
+
+ggsave(
+  'plots/udp_victim_race_majority_legend.png',
+  dpi = 'retina',
+  width = 10.4 * 1.5,
+  height = 4.81 * 1.5
+)
